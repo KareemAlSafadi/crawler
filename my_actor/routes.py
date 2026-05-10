@@ -133,12 +133,13 @@ async def list_handler(context: PlaywrightCrawlingContext) -> None:
 
         if detail_url:
             # Enqueue the detail page; pass the list_data as user_data.
+            from crawlee import Request
             await context.add_requests([
-                {
-                    'url': detail_url,
-                    'label': DETAIL_LABEL,
-                    'user_data': {'list_data': list_data},
-                }
+                Request.from_url(
+                    url=detail_url,
+                    label=DETAIL_LABEL,
+                    user_data={'list_data': list_data},
+                )
             ])
         else:
             # No detail link – push what we have immediately.
