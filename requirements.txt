@@ -1,0 +1,5 @@
+# SP-Today Currency Scraper dependencies
+
+apify >= 3.0.0, < 4.0.0
+crawlee[playwright]
+playwright
