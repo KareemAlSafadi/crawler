@@ -3,30 +3,25 @@
 # You can also use any other image from Docker Hub.
 FROM apify/actor-python:3.14
 
-USER myuser
+# Copy requirements.txt as root so we can install system-level deps
+COPY requirements.txt ./
 
-# Second, copy just requirements.txt into the Actor image,
-# since it should be the only file that affects the dependency install in the next step,
-# in order to speed up the build
-COPY --chown=myuser:myuser requirements.txt ./
-
-# Install the packages specified in requirements.txt,
-# Print the installed Python version, pip version
-# and all installed packages with their versions for debugging
+# Install Python packages and Playwright browsers (must run as root for --with-deps)
 RUN echo "Python version:" \
  && python --version \
  && echo "Pip version:" \
  && pip --version \
  && echo "Installing dependencies:" \
  && pip install -r requirements.txt \
- && echo "Installing Playwright browser (Chromium):" \
+ && echo "Installing Playwright browser (Chromium) with system dependencies:" \
  && python -m playwright install --with-deps chromium \
  && echo "All installed Python packages:" \
  && pip freeze
 
-# Next, copy the remaining files and directories with the source code.
-# Since we do this after installing the dependencies, quick build will be really fast
-# for most source file changes.
+# Switch to non-root user for runtime security
+USER myuser
+
+# Copy the remaining source files
 COPY --chown=myuser:myuser . ./
 
 # Use compileall to ensure the runnability of the Actor Python code.
