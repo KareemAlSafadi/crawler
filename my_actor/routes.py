@@ -16,8 +16,33 @@ DETAIL_LABEL = 'CURRENCY_DETAIL'
 
 
 # ---------------------------------------------------------------------------
-# Helper
+# Helpers
 # ---------------------------------------------------------------------------
+
+_STEALTH_JS = """
+    // Remove the primary headless-browser signal
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    // Spoof a non-empty plugin list (headless Chrome has 0 plugins)
+    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+    // Spoof realistic language list
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+    // Inject the chrome runtime object that real Chrome exposes
+    if (!window.chrome) window.chrome = { runtime: {} };
+"""
+
+
+async def _apply_stealth(context: PlaywrightCrawlingContext) -> None:
+    """Patch bot-detection signals on the already-loaded page via evaluate().
+
+    Note: evaluate() runs in the current page context AFTER navigation.
+    It cannot affect what the server already sent, but it removes signals
+    that anti-bot JS on the page might read after initial load.
+    """
+    try:
+        await context.page.evaluate(_STEALTH_JS)
+    except Exception as exc:  # noqa: BLE001
+        Actor.log.debug(f'Stealth JS injection skipped: {exc}')
+
 
 def _clean(text: str | None) -> str:
     """Strip whitespace from a text value."""
@@ -46,6 +71,9 @@ async def list_handler(context: PlaywrightCrawlingContext) -> None:
     Actor.log.info(f'Scraping currency list: {url}')
 
     page = context.page
+
+    # Patch any in-page bot-detection scripts that run after initial load.
+    await _apply_stealth(context)
 
     # Wait for the table rows to be rendered by React.
     await page.wait_for_selector('tbody tr', timeout=30_000)
