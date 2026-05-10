@@ -247,5 +247,6 @@ async def detail_handler(context: PlaywrightCrawlingContext) -> None:
 @router.default_handler
 async def default_handler(context: PlaywrightCrawlingContext) -> None:
     """Route the initial un-labelled request to the list handler."""
-    context.request.label = LIST_LABEL
+    # NOTE: context.request.label is read-only in Crawlee 1.6+ (frozen Pydantic model).
+    # We simply delegate directly to list_handler instead of re-labelling.
     await list_handler(context)
